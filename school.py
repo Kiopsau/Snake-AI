@@ -2,7 +2,9 @@ import random
 from environment import SnakeEnvironment
 from idiot import suckers
 import config
-import time
+import time 
+import matplotlib.pyplot as plt
+
 
 
 POPULATION = config.IDIOTS
@@ -68,7 +70,6 @@ def run_agent(agent, render=False, num_runs = 1):
             if render:
                 env.render()
 
-
         total_score += score
         total_moves += moves
         total_length += len(env.snake.body)
@@ -81,7 +82,10 @@ def run_agent(agent, render=False, num_runs = 1):
 
 
 def main():
-    agents = [suckers(weights=config.WEIGHTS) for _ in range(POPULATION)]
+    agents = [suckers(weights=config.WEIGHTS) for _ in range(POPULATION)] 
+
+    list_all_lengths = [] 
+    list_all_weighted_scores = [] 
 
 
     for gen in range(1, GENERATIONS + 1):
@@ -92,20 +96,27 @@ def main():
         moves = []
         weighted_scores = []
 
-
-        for agent in agents:
+        total = len(agents)
+        for i, agent in enumerate(agents, start = 1): 
             score, length, num_moves = run_agent(agent, render=False, num_runs = config.NUM_RUNS)
             scores.append(score)
             lengths.append(length)
             moves.append(num_moves)
 
-
             weighted_scores.append((score * agent.weights[5][0]) - (length * agent.weights[5][1]) + (length * agent.weights[5][2]))
+
+            bar_length = 50  # adjust for how wide the bar is
+            progress = int((i / total) * bar_length)
+            bar = '█' * progress + '-' * (bar_length - progress)
+            percent = int((i / total) * 100)
+            print(f"\r[{bar}] {percent}%  ({i}/{total})", end='')
 
 
         best_idx = weighted_scores.index(max(weighted_scores))
         smartest = agents[best_idx]
 
+        list_all_lengths.append(lengths[best_idx]) 
+        list_all_weighted_scores.append(weighted_scores[best_idx]) 
 
         print(f"Best weighted agent score: {weighted_scores[best_idx]:.2f} | length: {lengths[best_idx]:.2f} | moves: {moves[best_idx]:.2f} | Weights: {smartest.weights}")
 
@@ -116,8 +127,32 @@ def main():
 
 
         run_agent(smartest, render=True)
-        agents = evolve(smartest)
+        agents = evolve(smartest) 
+    
+    return list_all_weighted_scores, list_all_lengths 
 
 
 if __name__ == "__main__":
-    main()
+    scores, lengths = main() 
+    
+    
+    
+    gens = list(range(1, len(lengths) + 1))
+
+    plt.figure()
+    plt.plot(gens, lengths, marker='o')
+    plt.xlabel("Generation")
+    plt.ylabel("Best Length")
+    plt.title("Best Length per Generation")
+    plt.grid(True)
+    plt.ylim(bottom = 0)
+    plt.show()    
+
+
+    plt.figure()
+    plt.plot(gens, scores, marker='x', color='orange')
+    plt.xlabel("Generation")
+    plt.ylabel("Best Score")
+    plt.title("Best Score per Generation")
+    plt.grid(True)
+    plt.show()
